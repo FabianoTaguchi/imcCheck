@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Cultivos — Propriedades Rurais{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Associar Cultivos à Propriedade</h1>
+  <form class="form" method="post">
+    <div class="form-row">
+      <label for="propriedade_id">Propriedade</label>
+      <select id="propriedade_id" name="propriedade_id" required>
+        <option value="">Selecione...</option>
+        {% for p in propriedades %}
+          <option value="{{ p['id'] }}">{{ p['nome'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="cultura_id">Tipo de Cultura</label>
+      <select id="cultura_id" name="cultura_id" required>
+        <option value="">Selecione...</option>
+        {% for c in culturas %}
+          <option value="{{ c['id'] }}">{{ c['nome'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="area_cultivada">Área cultivada (ha)</label>
+      <input type="number" step="0.01" id="area_cultivada" name="area_cultivada" required />
+    </div>
+    <div class="form-row">
+      <label for="data_plantio">Data de plantio</label>
+      <input type="date" id="data_plantio" name="data_plantio" />
+    </div>
+    <div class="form-row">
+      <label for="data_colheita">Data de colheita (prevista)</label>
+      <input type="date" id="data_colheita" name="data_colheita" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button">Salvar Cultivo</button>
+      <button type="reset" class="button secondary">Limpar</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Cultivos cadastrados</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Propriedade</th>
+        <th>Cultura</th>
+        <th>Área (ha)</th>
+        <th>Plantio</th>
+        <th>Colheita (prev.)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in cultivos %}
+        <tr>
+          <td>{{ r['propriedade'] }}</td>
+          <td>{{ r['cultura'] }}</td>
+          <td>{{ '%.2f'|format(r['area_cultivada_ha']) }}</td>
+          <td>{{ r['data_plantio'] or '-' }}</td>
+          <td>{{ r['data_colheita_prevista'] or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">Nenhum cultivo cadastrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

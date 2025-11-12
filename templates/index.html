@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Início — IMC de Pacientes{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>IMC de Pacientes</h1>
+  <p>Escolha uma das opções para gerenciar metas, registros e atividades físicas.</p>
+  <div class="grid">
+    <a class="button large" href="{{ url_for('metas') }}">Lançar meta</a>
+    <a class="button large" href="{{ url_for('registros') }}">Registrar dados</a>
+    <a class="button large" href="{{ url_for('acompanhamento') }}">Acompanhamento</a>
+    <a class="button large" href="{{ url_for('atividades') }}">Atividades físicas</a>
+    <a class="button large" href="{{ url_for('relatorio_atividades') }}">Relatório de atividades físicas</a>
+  </div>
+</section>
+{% endblock %}

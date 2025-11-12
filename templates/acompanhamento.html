@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Acompanhamento — IMC{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Acompanhamento</h1>
+  <p>Veja os registros na forma de tabela e verifique o alcance da meta.</p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Peso (kg)</th>
+        <th>Dentro da meta?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td colspan="3">Sem registros no momento.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

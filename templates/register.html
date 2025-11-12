@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Criar conta — IMC de Pacientes{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Criar conta</h1>
+  <form class="form" method="post">
+    <div class="form-row">
+      <label for="nome_completo">Nome completo</label>
+      <input type="text" id="nome_completo" name="nome_completo" required />
+    </div>
+    <div class="form-row">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required />
+    </div>
+    <div class="form-row">
+      <label for="telefone">Telefone</label>
+      <input type="tel" id="telefone" name="telefone" />
+    </div>
+    <div class="form-row">
+      <label for="login">Login</label>
+      <input type="text" id="login" name="login" required />
+    </div>
+    <div class="form-row">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" name="senha" required />
+    </div>
+    <div class="form-row">
+      <label for="data_nascimento">Data de nascimento</label>
+      <input type="date" id="data_nascimento" name="data_nascimento" />
+    </div>
+    <div class="form-row">
+      <label for="peso">Peso (kg)</label>
+      <input type="number" id="peso" name="peso" step="0.1" min="0" />
+    </div>
+    <div class="form-row">
+      <label for="altura">Altura (m)</label>
+      <input type="number" id="altura" name="altura" step="0.01" min="0" />
+    </div>
+    <div class="form-row">
+      <label for="sexo">Sexo</label>
+      <select id="sexo" name="sexo">
+        <option value="">Selecione</option>
+        <option value="masculino">Masculino</option>
+        <option value="feminino">Feminino</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button">Criar conta</button>
+    </div>
+  </form>
+  <p style="margin-top:16px;">
+    Já tem conta? <a href="{{ url_for('login') }}">Fazer login</a>
+  </p>
+  <p style="color:#333;">Observação: você mencionou "email" duas vezes; incluí apenas um campo de email.</p>
+</section>
+{% endblock %}

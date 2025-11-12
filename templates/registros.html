@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Dados — IMC{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Registrar dados</h1>
+  <p>Registre data e peso. Vários registros podem ser feitos, criando um histórico.</p>
+  <form class="form" method="post">
+    <div class="form-row">
+      <label for="data_registro">Data</label>
+      <input type="date" id="data_registro" name="data_registro" required />
+    </div>
+    <div class="form-row">
+      <label for="peso_registro">Peso (kg)</label>
+      <input type="number" id="peso_registro" name="peso_registro" step="0.1" min="0" required />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button">Salvar registro</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Histórico de registros</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Peso (kg)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if registros and registros|length > 0 %}
+        {% for r in registros %}
+        <tr>
+          <td>{{ r.data if r.data is defined else r['data'] }}</td>
+          <td>{{ r.peso if r.peso is defined else r['peso'] }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr>
+        <td colspan="2">Sem registros no momento.</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
