@@ -25,7 +25,7 @@ def index():
     return render_template('index.html', show_menu=True)
 
 
-# CLasses do projeto
+# Classes do projeto
 class Users(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -36,46 +36,69 @@ class Users(db.Model):
     login = db.Column(db.String(80), nullable= True, unique=True)
     senha = db.Column(db.String(255), nullable= True)
     data_nascimento = db.Column(db.DateTime)
-    peso = db.Column(db.Integer)
-    altura = db.Column(db.Integer)
+    peso = db.Column(db.Numeric(5,2))
+    altura = db.Column(db.Numeric(3,2))
     sexo = db.Column(db.String(20))
 
-   
+# Classe Metas
 class Goal(db.Model):
     __tablename__ = 'goals'
-
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
     data_objetivo = db.Column(db.Date, nullable=False)
     peso_meta = db.Column(db.Numeric(5, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    
+
+# Visualizar a meta salva  
 @app.route('/metas', methods=['GET', 'POST'])
 def metas():
-    return render_template('metas.html', show_menu=True)
+    # Recuperar a sessão do usuário e define a meta como um campo vazio
+    user_id = session.get('user_id')
+    meta = None
+    if user_id:
+        # Busca um user_id com o mesmo valor que está logado na sessão
+        meta = Goal.query.filter_by(user_id=user_id).first()
+    return render_template('metas.html', show_menu=True, meta=meta)
 
+# Excluir meta de um usuário logado
 @app.route('/metas/excluir', methods=['POST'])
 def excluir_meta():
-    return render_template('metas.html', show_menu=True)
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para gerenciar metas.', 'warning')
+        return redirect(url_for('login'))
+    # Busca um user_id com o mesmo valor que está logado na sessão
+    meta = Goal.query.filter_by(user_id=user_id).first()
+    if not meta:
+        flash('Nenhuma meta para excluir.', 'info')
+        return redirect(url_for('metas'))
+    # Exclui a meta
+    db.session.delete(meta)
+    db.session.commit()
+    flash('Meta excluída.', 'success')
+    return redirect(url_for('metas'))
+
 
 @app.route('/registros', methods=['GET', 'POST'])
 def registros():
     return render_template('registros.html', show_menu=True)
 
+
 @app.route('/acompanhamento', methods=['GET'])
 def acompanhamento():
     return render_template('acompanhamento.html', show_menu=True)
+
 
 @app.route('/atividades', methods=['GET', 'POST'])
 def atividades():
     return render_template('atividades.html', show_menu=True)
 
+
 @app.route('/relatorio-atividades', methods=['GET'])
 def relatorio_atividades():
     return render_template('relatorio_atividades.html', show_menu=True)
 
-## Rotas antigas de gestão de fazenda removidas nesta etapa
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -85,8 +108,18 @@ def login():
         if not username or not password:
             flash('Informe usuário e senha.', 'warning')
             return redirect(url_for('login'))
-        
-        # Aceita qualquer combinação por enquanto
+        user = Users.query.filter_by(login=username).first()
+        if not user:
+            user = Users(
+                nome_completo=username,
+                email=f"{username}@example.com",
+                telefone=None,
+                login=username,
+                senha=password)
+            db.session.add(user)
+            db.session.commit()
+        session['user_id'] = user.id
+        session['user_name'] = user.nome_completo or user.login
         flash('Login aceito.', 'success')
         return redirect(url_for('index'))
     return render_template('login.html', show_menu=False)
@@ -116,37 +149,29 @@ def cadastrar():
         
 @app.route('/cadastroMeta', methods=['GET', 'POST'])
 def cadastroMetas():
-    id = (request.form.get('id') or '').strip()
-    user_id = (request.form.get('user_id') or '').strip()
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para cadastrar meta.', 'warning')
+        return redirect(url_for('login'))
     data_objetivo = (request.form.get('data_objetivo') or '').strip()
     peso_meta = (request.form.get('peso_meta') or '').strip()
-  
-    
-
-    # Pega as variáveis e adiciona um novo usuário na tabela (Lista)
+    if not data_objetivo or not peso_meta:
+        flash('Informe data objetivo e peso da meta.', 'warning')
+        return redirect(url_for('metas'))
+    existente = Goal.query.filter_by(user_id=user_id).first()
+    if existente:
+        flash('Já existe uma meta ativa para o usuário.', 'warning')
+        return redirect(url_for('metas'))
     try:
-        u = Users(
-            nome_completo=nome_completo,
-            email=email,
-            telefone=telefone or None,
-            login=login,
-            senha=senha,
-            data_nascimento=data_nascimento,
-            peso=peso or None,
-            altura=altura or None, 
-            sexo=sexo or None)
-        db.session.add(u)
+        data_obj = datetime.strptime(data_objetivo, '%Y-%m-%d').date()
+        meta = Goal(user_id=user_id, data_objetivo=data_obj, peso_meta=float(peso_meta))
+        db.session.add(meta)
         db.session.commit()
-        flash('Usuário cadastrado com sucesso!', 'success')
-        return redirect(url_for('index'))
-    
-    except IntegrityError:
-        db.session.rollback()
-        return redirect(url_for('index'))
+        flash('Meta cadastrada com sucesso.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao cadastrar: {str(e)}', 'danger')
-        return redirect(url_for('index'))
+        flash('Erro ao cadastrar meta.', 'danger')
+    return redirect(url_for('metas'))
 
 # Verifica se o arquivo é o principal do projeto
 if __name__ == '__main__':
