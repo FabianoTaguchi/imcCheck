@@ -61,6 +61,7 @@ def metas():
         meta = Goal.query.filter_by(user_id=user_id).first()
     return render_template('metas.html', show_menu=True, meta=meta)
 
+
 # Excluir meta de um usuário logado
 @app.route('/metas/excluir', methods=['POST'])
 def excluir_meta():
@@ -113,15 +114,18 @@ def login():
         user = Users.query.filter_by(login=username).first()
         # Recupera o login e o nome do usuário
         session['user_id'] = user.id
-        session['user_name'] = user.nome_completo or user.login
+        session['user_name'] = user.nome_completo 
+        session['user_telefone'] = user.telefone
         flash('Login aceito.', 'success')
         return redirect(url_for('index'))
     return render_template('login.html', show_menu=False)
+
 
 # Rota responsável por abrir o formulário para cadastrar um usuário
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     return render_template('register.html', show_menu=False)
+
 
 # Rota para cadastrar o usuário
 @app.route('/cadastro', methods=['POST'])
@@ -136,11 +140,37 @@ def cadastrar():
     altura = (request.form.get('altura') or '').strip()
     sexo = (request.form.get('sexo') or '').strip()
 
-    # Verifica se o nome, email, login ou senha não estão em branco
     if not nome_completo or not email or not login or not senha:
         flash('Nome, e-mail, login e senha são dados obrigatórios', 'warning')
+        return redirect(url_for('register'))
+    try:
+        user = Users(
+            nome_completo=nome_completo,
+            email=email,
+            telefone=telefone or None,
+            login=login,
+            senha=senha,
+            data_nascimento=datetime.strptime(data_nascimento, '%Y-%m-%d') if data_nascimento else None,
+            peso=float(peso) if peso else None,
+            altura=float(altura) if altura else None,
+            sexo=sexo or None,)
+        db.session.add(user)
+        db.session.commit()
+        flash('Usuário cadastrado com sucesso!', 'success')
+        session['user_id'] = user.id
+        session['user_name'] = user.nome_completo 
         return redirect(url_for('index'))
-        
+    except IntegrityError:
+        db.session.rollback()
+        flash('Email ou login já cadastrado.', 'warning')
+        return redirect(url_for('register'))
+    except Exception:
+        db.session.rollback()
+        flash('Erro ao cadastrar usuário.', 'danger')
+        return redirect(url_for('register'))
+
+
+# Rota para cadastrar uma meta
 @app.route('/cadastroMeta', methods=['GET', 'POST'])
 def cadastroMetas():
     user_id = session.get('user_id')
@@ -166,6 +196,7 @@ def cadastroMetas():
         db.session.rollback()
         flash('Erro ao cadastrar meta.', 'danger')
     return redirect(url_for('metas'))
+
 
 # Verifica se o arquivo é o principal do projeto
 if __name__ == '__main__':
