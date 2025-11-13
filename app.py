@@ -99,25 +99,19 @@ def atividades():
 def relatorio_atividades():
     return render_template('relatorio_atividades.html', show_menu=True)
 
-
+# Rota para fazer o login na aplicação
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # Recupera os dados do formulário
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         if not username or not password:
             flash('Informe usuário e senha.', 'warning')
             return redirect(url_for('login'))
+        # Faz a consulta a para saber se o campo login dos usuários é o mesmo recuperado do formulário
         user = Users.query.filter_by(login=username).first()
-        if not user:
-            user = Users(
-                nome_completo=username,
-                email=f"{username}@example.com",
-                telefone=None,
-                login=username,
-                senha=password)
-            db.session.add(user)
-            db.session.commit()
+        # Recupera o login e o nome do usuário
         session['user_id'] = user.id
         session['user_name'] = user.nome_completo or user.login
         flash('Login aceito.', 'success')

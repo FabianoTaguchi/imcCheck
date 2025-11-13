@@ -12,17 +12,15 @@
         <div class="brand"><a href="{{ url_for('index') }}" style="color:inherit;text-decoration:none;">IMCCheck</a></div>
         {% if show_menu %}
         <ul class="menu">
+          {% if session.get('user_name') %}
+          <li style="color:red;">Bem Vindo {{ session.get('user_name') }}</li>
+          {% endif %}
           <li><a href="{{ url_for('metas') }}">Metas</a></li>
           <li><a href="{{ url_for('registros') }}">Registros</a></li>
           <li><a href="{{ url_for('acompanhamento') }}">Acompanhamento</a></li>
           <li><a href="{{ url_for('atividades') }}">Atividades</a></li>
           <li><a href="{{ url_for('relatorio_atividades') }}">Relatório</a></li>
-          {% if session.get('user_name') %}
-          <li style="margin-left:auto;">{{ session.get('user_name') }}</li>
-          <li><a href="{{ url_for('login') }}">Logoff</a></li>
-          {% else %}
           <li style="margin-left:auto;"><a href="{{ url_for('login') }}">Logoff</a></li>
-          {% endif %}
         </ul>
         {% endif %}
       </div>
