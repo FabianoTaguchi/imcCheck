@@ -5,7 +5,7 @@
   <h1>Lançar meta</h1>
   <p>Defina uma meta com data objetivo e peso. Só é permitida uma meta ativa.</p>
   {% set has_meta = meta is defined and meta %}
-  <form class="form" method="post">
+  <form class="form" method="post" action="/cadastroMetas">
     <div class="form-row">
       <label for="data_objetivo">Data objetivo</label>
       <input type="date" id="data_objetivo" name="data_objetivo" required {% if has_meta %}disabled{% endif %} />

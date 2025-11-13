@@ -40,7 +40,17 @@ class Users(db.Model):
     altura = db.Column(db.Integer)
     sexo = db.Column(db.String(20))
 
+   
+class Goal(db.Model):
+    __tablename__ = 'goals'
 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    data_objetivo = db.Column(db.Date, nullable=False)
+    peso_meta = db.Column(db.Numeric(5, 2), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    
 @app.route('/metas', methods=['GET', 'POST'])
 def metas():
     return render_template('metas.html', show_menu=True)
@@ -103,6 +113,15 @@ def cadastrar():
     if not nome_completo or not email or not login or not senha:
         flash('Nome, e-mail, login e senha são dados obrigatórios', 'warning')
         return redirect(url_for('index'))
+        
+@app.route('/cadastroMeta', methods=['GET', 'POST'])
+def cadastroMetas():
+    id = (request.form.get('id') or '').strip()
+    user_id = (request.form.get('user_id') or '').strip()
+    data_objetivo = (request.form.get('data_objetivo') or '').strip()
+    peso_meta = (request.form.get('peso_meta') or '').strip()
+  
+    
 
     # Pega as variáveis e adiciona um novo usuário na tabela (Lista)
     try:
