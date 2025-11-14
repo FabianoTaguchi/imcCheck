@@ -49,8 +49,7 @@ class Goal(db.Model):
     peso_meta = db.Column(db.Numeric(5, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-
-
+# Classes dos registros de peso
 class WeightRecord(db.Model):
     __tablename__ = 'weight_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -62,7 +61,6 @@ class WeightRecord(db.Model):
     grau_obesidade = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-
 # Visualizar a meta salva  
 @app.route('/metas', methods=['GET', 'POST'])
 def metas():
@@ -73,7 +71,6 @@ def metas():
         # Busca um user_id com o mesmo valor que está logado na sessão
         meta = Goal.query.filter_by(user_id=user_id).first()
     return render_template('metas.html', show_menu=True, meta=meta)
-
 
 # Excluir meta de um usuário logado
 @app.route('/metas/excluir', methods=['POST'])
@@ -93,7 +90,7 @@ def excluir_meta():
     flash('Meta excluída.', 'success')
     return redirect(url_for('metas'))
 
-
+# Rota que cria os registros e calcula o IMC
 @app.route('/registros', methods=['GET', 'POST'])
 def registros():
     user_id = session.get('user_id')
@@ -111,9 +108,11 @@ def registros():
                 u = Users.query.get(user_id)
                 altura = float(u.altura) if u and u.altura else None
                 peso_val = float(peso_registro)
+                # Cálculo do IMC a partir do peso e da altura
                 imc_val = round(peso_val / (altura * altura), 2) if altura and altura > 0 else None
                 classificacao = None
                 grau = None
+                # Identifica o grau de obesidade
                 if imc_val is not None:
                     if imc_val < 18.5:
                         classificacao = 'Abaixo do peso'
@@ -138,6 +137,7 @@ def registros():
                 db.session.rollback()
                 flash('Erro ao salvar registro.', 'danger')
         return redirect(url_for('registros'))
+    # Select para que os registros apareçam na tabela abaixo do formulário
     rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
     registros = [{'data': r.data_registro, 'peso': float(r.peso), 'imc': float(r.imc) if r.imc is not None else None, 'classificacao': r.classificacao, 'grau': r.grau_obesidade} for r in rows]
     return render_template('registros.html', show_menu=True, registros=registros)
@@ -170,6 +170,7 @@ def atividades():
 def relatorio_atividades():
     return render_template('relatorio_atividades.html', show_menu=True)
 
+
 # Rota para fazer o login na aplicação
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -185,17 +186,14 @@ def login():
         # Recupera o login e o nome do usuário
         session['user_id'] = user.id
         session['user_name'] = user.nome_completo 
-        session['user_telefone'] = user.telefone
         flash('Login aceito.', 'success')
         return redirect(url_for('index'))
     return render_template('login.html', show_menu=False)
-
 
 # Rota responsável por abrir o formulário para cadastrar um usuário
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     return render_template('register.html', show_menu=False)
-
 
 # Rota para cadastrar o usuário
 @app.route('/cadastro', methods=['POST'])
@@ -239,34 +237,41 @@ def cadastrar():
         flash('Erro ao cadastrar usuário.', 'danger')
         return redirect(url_for('register'))
 
-
 # Rota para cadastrar uma meta
 @app.route('/cadastroMeta', methods=['GET', 'POST'])
 def cadastroMetas():
+    # Autenticação da rota login
     user_id = session.get('user_id')
     if not user_id:
         flash('Faça login para cadastrar meta.', 'warning')
         return redirect(url_for('login'))
     data_objetivo = (request.form.get('data_objetivo') or '').strip()
     peso_meta = (request.form.get('peso_meta') or '').strip()
+    
+    # Validação de dados
     if not data_objetivo or not peso_meta:
         flash('Informe data objetivo e peso da meta.', 'warning')
         return redirect(url_for('metas'))
+
     existente = Goal.query.filter_by(user_id=user_id).first()
+
     if existente:
         flash('Já existe uma meta ativa para o usuário.', 'warning')
         return redirect(url_for('metas'))
+
     try:
+        # Formata a data do objetivo
         data_obj = datetime.strptime(data_objetivo, '%Y-%m-%d').date()
+        # Criar o objeto meta do tipo Goal
         meta = Goal(user_id=user_id, data_objetivo=data_obj, peso_meta=float(peso_meta))
         db.session.add(meta)
         db.session.commit()
         flash('Meta cadastrada com sucesso.', 'success')
+
     except Exception as e:
         db.session.rollback()
         flash('Erro ao cadastrar meta.', 'danger')
     return redirect(url_for('metas'))
-
 
 # Verifica se o arquivo é o principal do projeto
 if __name__ == '__main__':
