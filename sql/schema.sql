@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS weight_records (
   user_id INT NOT NULL,
   data_registro DATE NOT NULL,
   peso DECIMAL(5,2) NOT NULL,
+  imc DECIMAL(5,2) NULL,
+  classificacao VARCHAR(40) NULL,
+  grau_obesidade VARCHAR(20) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_weight_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_weight_user_date (user_id, data_registro)
@@ -49,10 +52,3 @@ CREATE TABLE IF NOT EXISTS activities (
   CONSTRAINT fk_activity_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_activity_user_date (user_id, data_atividade)
 );
-
--- Exemplos de views (opcional): comparação simples meta x último registro
--- CREATE VIEW v_user_last_weight AS
--- SELECT w.user_id, MAX(w.data_registro) AS ultima_data,
---        SUBSTRING_INDEX(GROUP_CONCAT(w.peso ORDER BY w.data_registro DESC), ',', 1) AS ultimo_peso
--- FROM weight_records w
--- GROUP BY w.user_id;

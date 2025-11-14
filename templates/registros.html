@@ -26,19 +26,25 @@
       <tr>
         <th>Data</th>
         <th>Peso (kg)</th>
+        <th>IMC</th>
+        <th>Classificação</th>
+        <th>Grau</th>
       </tr>
     </thead>
     <tbody>
       {% if registros and registros|length > 0 %}
         {% for r in registros %}
         <tr>
-          <td>{{ r.data if r.data is defined else r['data'] }}</td>
+          <td>{{ (r.data if r.data is defined else r['data']).strftime('%d-%m-%Y') }}</td>
           <td>{{ r.peso if r.peso is defined else r['peso'] }}</td>
+          <td>{{ r.imc if r.imc is defined else r['imc'] }}</td>
+          <td>{{ r.classificacao if r.classificacao is defined else r['classificacao'] }}</td>
+          <td>{{ r.grau if r.grau is defined else r['grau'] }}</td>
         </tr>
         {% endfor %}
       {% else %}
       <tr>
-        <td colspan="2">Sem registros no momento.</td>
+        <td colspan="5">Sem registros no momento.</td>
       </tr>
       {% endif %}
     </tbody>

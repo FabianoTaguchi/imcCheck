@@ -50,6 +50,19 @@ class Goal(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+
+class WeightRecord(db.Model):
+    __tablename__ = 'weight_records'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    data_registro = db.Column(db.Date, nullable=False)
+    peso = db.Column(db.Numeric(5, 2), nullable=False)
+    imc = db.Column(db.Numeric(5, 2))
+    classificacao = db.Column(db.String(40))
+    grau_obesidade = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 # Visualizar a meta salva  
 @app.route('/metas', methods=['GET', 'POST'])
 def metas():
@@ -83,12 +96,69 @@ def excluir_meta():
 
 @app.route('/registros', methods=['GET', 'POST'])
 def registros():
-    return render_template('registros.html', show_menu=True)
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para registrar dados.', 'warning')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        data_registro = (request.form.get('data_registro') or '').strip()
+        peso_registro = (request.form.get('peso_registro') or '').strip()
+        if not data_registro or not peso_registro:
+            flash('Informe data e peso.', 'warning')
+        else:
+            try:
+                data_obj = datetime.strptime(data_registro, '%Y-%m-%d').date()
+                u = Users.query.get(user_id)
+                altura = float(u.altura) if u and u.altura else None
+                peso_val = float(peso_registro)
+                imc_val = round(peso_val / (altura * altura), 2) if altura and altura > 0 else None
+                classificacao = None
+                grau = None
+                if imc_val is not None:
+                    if imc_val < 18.5:
+                        classificacao = 'Abaixo do peso'
+                    elif imc_val < 25:
+                        classificacao = 'Peso normal'
+                    elif imc_val < 30:
+                        classificacao = 'Sobrepeso'
+                    elif imc_val < 35:
+                        classificacao = 'Obesidade'
+                        grau = 'I'
+                    elif imc_val < 40:
+                        classificacao = 'Obesidade'
+                        grau = 'II'
+                    else:
+                        classificacao = 'Obesidade'
+                        grau = 'III'
+                registro = WeightRecord(user_id=user_id, data_registro=data_obj, peso=peso_val, imc=imc_val, classificacao=classificacao, grau_obesidade=grau)
+                db.session.add(registro)
+                db.session.commit()
+                flash('Registro salvo.', 'success')
+            except Exception:
+                db.session.rollback()
+                flash('Erro ao salvar registro.', 'danger')
+        return redirect(url_for('registros'))
+    rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    registros = [{'data': r.data_registro, 'peso': float(r.peso), 'imc': float(r.imc) if r.imc is not None else None, 'classificacao': r.classificacao, 'grau': r.grau_obesidade} for r in rows]
+    return render_template('registros.html', show_menu=True, registros=registros)
 
 
 @app.route('/acompanhamento', methods=['GET'])
 def acompanhamento():
-    return render_template('acompanhamento.html', show_menu=True)
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para acompanhar registros.', 'warning')
+        return redirect(url_for('login'))
+    rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    meta = Goal.query.filter_by(user_id=user_id).first()
+    registros = []
+    for r in rows:
+        imc_val = float(r.imc) if r.imc is not None else None
+        classificacao = r.classificacao
+        grau = r.grau_obesidade
+        ok = (float(r.peso) <= float(meta.peso_meta)) if meta else None
+        registros.append({'data': r.data_registro, 'peso': float(r.peso), 'imc': imc_val, 'classificacao': classificacao, 'grau': grau, 'ok': ok})
+    return render_template('acompanhamento.html', show_menu=True, registros=registros)
 
 
 @app.route('/atividades', methods=['GET', 'POST'])

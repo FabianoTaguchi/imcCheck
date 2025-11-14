@@ -43,3 +43,5 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial
 .flash.success { background: #e8f4ff; border: 1px solid #b6d7ff; }
 .flash.warning { background: #fff8e5; border: 1px solid #ffe08a; }
 .flash.danger { background: #ffe8e8; border: 1px solid #ffb3b3; }
+.row-ok { background: #e8f7ee; }
+.row-bad { background: #fdeaea; }

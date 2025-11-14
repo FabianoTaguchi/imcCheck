@@ -9,13 +9,33 @@
       <tr>
         <th>Data</th>
         <th>Peso (kg)</th>
+        <th>IMC</th>
+        <th>Classificação</th>
         <th>Dentro da meta?</th>
       </tr>
     </thead>
     <tbody>
+      {% if registros and registros|length > 0 %}
+        {% for r in registros %}
+        <tr{% if r.ok is defined %} class="{{ 'row-ok' if r.ok else 'row-bad' }}"{% endif %}>
+          <td>{{ r.data.strftime('%d-%m-%Y') }}</td>
+          <td>{{ r.peso }}</td>
+          <td>{{ r.imc }}</td>
+          <td>{{ r.classificacao }}{% if r.grau is defined and r.grau %} {{ r.grau }}{% endif %}</td>
+          <td>
+            {% if r.ok is defined %}
+              {{ 'Sim' if r.ok else 'Não' }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
       <tr>
-        <td colspan="3">Sem registros no momento.</td>
+        <td colspan="5">Sem registros no momento.</td>
       </tr>
+      {% endif %}
     </tbody>
   </table>
 </section>

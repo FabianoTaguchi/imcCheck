@@ -37,7 +37,7 @@
     <tbody>
       {% if has_meta %}
       <tr>
-        <td>{{ meta.data_objetivo }}</td>
+        <td>{{ meta.data_objetivo.strftime('%d-%m-%Y') if meta and meta.data_objetivo else '' }}</td>
         <td>{{ meta.peso_meta }}</td>
       </tr>
       {% else %}
