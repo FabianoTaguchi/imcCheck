@@ -1,11 +1,9 @@
 # Importação das biblioteca
 from flask import Flask, render_template, request
 from flask import redirect, url_for, flash, session
-from functools import wraps
 import os
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 
 
@@ -32,7 +30,6 @@ class Users(db.Model):
     nome_completo = db.Column(db.String(150), nullable= True)
     email = db.Column(db.String(150), nullable= True, unique=True)
     telefone = db.Column(db.String(40))
-    email = db.Column(db.String(80))
     login = db.Column(db.String(80), nullable= True, unique=True)
     senha = db.Column(db.String(255), nullable= True)
     data_nascimento = db.Column(db.DateTime)
@@ -44,6 +41,7 @@ class Users(db.Model):
 class Goal(db.Model):
     __tablename__ = 'goals'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # Chave estrangeira - Atributo id da classe Usuário
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
     data_objetivo = db.Column(db.Date, nullable=False)
     peso_meta = db.Column(db.Numeric(5, 2), nullable=False)
@@ -53,12 +51,23 @@ class Goal(db.Model):
 class WeightRecord(db.Model):
     __tablename__ = 'weight_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # Chave estrangeira - Atributo id da classe Usuário
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     data_registro = db.Column(db.Date, nullable=False)
     peso = db.Column(db.Numeric(5, 2), nullable=False)
     imc = db.Column(db.Numeric(5, 2))
     classificacao = db.Column(db.String(40))
     grau_obesidade = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class Activity(db.Model):
+    __tablename__ = 'activities'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # Chave estrangeira - Atributo id da classe Usuário
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    tipo = db.Column(db.String(100), nullable=False)
+    data_atividade = db.Column(db.Date, nullable=False)
+    duracao_min = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 # Visualizar a meta salva  
@@ -79,7 +88,7 @@ def excluir_meta():
     if not user_id:
         flash('Faça login para gerenciar metas.', 'warning')
         return redirect(url_for('login'))
-    # Busca um user_id com o mesmo valor que está logado na sessão
+    # Busca um user_id na classe Goal com o mesmo valor que está logado na sessão
     meta = Goal.query.filter_by(user_id=user_id).first()
     if not meta:
         flash('Nenhuma meta para excluir.', 'info')
@@ -90,21 +99,25 @@ def excluir_meta():
     flash('Meta excluída.', 'success')
     return redirect(url_for('metas'))
 
-# Rota que cria os registros e calcula o IMC
+# Cria registros de peso e calcula o IMC
 @app.route('/registros', methods=['GET', 'POST'])
 def registros():
+    # Autenticação: exige usuário em sessão (session['user_id'])
     user_id = session.get('user_id')
     if not user_id:
         flash('Faça login para registrar dados.', 'warning')
         return redirect(url_for('login'))
     if request.method == 'POST':
+        # Recebe 'data_registro' e 'peso_registro' do formulário
         data_registro = (request.form.get('data_registro') or '').strip()
         peso_registro = (request.form.get('peso_registro') or '').strip()
         if not data_registro or not peso_registro:
             flash('Informe data e peso.', 'warning')
         else:
             try:
+                # Converte data (YYYY-MM-DD) e peso
                 data_obj = datetime.strptime(data_registro, '%Y-%m-%d').date()
+                #  Busca altura do usuário(user_id) para cálculo do IMC
                 u = Users.query.get(user_id)
                 altura = float(u.altura) if u and u.altura else None
                 peso_val = float(peso_registro)
@@ -137,38 +150,73 @@ def registros():
                 db.session.rollback()
                 flash('Erro ao salvar registro.', 'danger')
         return redirect(url_for('registros'))
-    # Select para que os registros apareçam na tabela abaixo do formulário
+    # GET: carrega registros para exibição na tabela abaixo do formulário
     rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    # Monta a estrutura para o template com data, peso, imc, classificação e grau
     registros = [{'data': r.data_registro, 'peso': float(r.peso), 'imc': float(r.imc) if r.imc is not None else None, 'classificacao': r.classificacao, 'grau': r.grau_obesidade} for r in rows]
     return render_template('registros.html', show_menu=True, registros=registros)
 
 
+# Rota que exibe registros e compara com a meta
 @app.route('/acompanhamento', methods=['GET'])
 def acompanhamento():
+    # Autenticação: exige usuário em sessão
     user_id = session.get('user_id')
     if not user_id:
         flash('Faça login para acompanhar registros.', 'warning')
         return redirect(url_for('login'))
+    # Busca registros de peso do usuário (ordem decrescente de data)
     rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    # Busca a meta ativa do usuário (user_id)
     meta = Goal.query.filter_by(user_id=user_id).first()
     registros = []
+    # Para cada registro, calcula se está dentro da meta (peso <= peso_meta)
     for r in rows:
         imc_val = float(r.imc) if r.imc is not None else None
         classificacao = r.classificacao
         grau = r.grau_obesidade
         ok = (float(r.peso) <= float(meta.peso_meta)) if meta else None
+        # Monta lista para o template com data, peso, imc, classificação, grau e indicador 'ok'
         registros.append({'data': r.data_registro, 'peso': float(r.peso), 'imc': imc_val, 'classificacao': classificacao, 'grau': grau, 'ok': ok})
     return render_template('acompanhamento.html', show_menu=True, registros=registros)
 
-
+# Rota que cadastra as atividades físicas recebidas pelo formulário
 @app.route('/atividades', methods=['GET', 'POST'])
 def atividades():
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para registrar atividades.', 'warning')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        tipo_atividade = (request.form.get('tipo_atividade') or '').strip()
+        data_atividade = (request.form.get('data_atividade') or '').strip()
+        duracao_min = (request.form.get('duracao_min') or '').strip()
+        if not tipo_atividade or not data_atividade or not duracao_min:
+            flash('Informe atividade, data e duração.', 'warning')
+            return redirect(url_for('atividades'))
+        try:
+            data_obj = datetime.strptime(data_atividade, '%Y-%m-%d').date()
+            duracao_val = int(duracao_min)
+            atividade = Activity(user_id=user_id, tipo=tipo_atividade, data_atividade=data_obj, duracao_min=duracao_val)
+            db.session.add(atividade)
+            db.session.commit()
+            flash('Atividade salva.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('Erro ao salvar atividade.', 'danger')
+        return redirect(url_for('atividades'))
     return render_template('atividades.html', show_menu=True)
 
-
+# Rota que faz a busca dos dados salvos na classe Atividade
 @app.route('/relatorio-atividades', methods=['GET'])
 def relatorio_atividades():
-    return render_template('relatorio_atividades.html', show_menu=True)
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para ver atividades.', 'warning')
+        return redirect(url_for('login'))
+    rows = Activity.query.filter_by(user_id=user_id).order_by(Activity.data_atividade.desc()).all()
+    atividades = [{'tipo': r.tipo, 'data': r.data_atividade, 'duracao': int(r.duracao_min)} for r in rows]
+    return render_template('relatorio_atividades.html', show_menu=True, atividades=atividades)
 
 
 # Rota para fazer o login na aplicação

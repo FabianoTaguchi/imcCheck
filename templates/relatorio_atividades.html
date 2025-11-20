@@ -13,9 +13,19 @@
       </tr>
     </thead>
     <tbody>
+      {% if atividades and atividades|length > 0 %}
+        {% for a in atividades %}
+        <tr>
+          <td>{{ a.tipo }}</td>
+          <td>{{ a.data.strftime('%d-%m-%Y') }}</td>
+          <td>{{ a.duracao }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
       <tr>
         <td colspan="3">Sem atividades registradas no momento.</td>
       </tr>
+      {% endif %}
     </tbody>
   </table>
 </section>
