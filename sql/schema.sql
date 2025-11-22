@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS weight_records (
   imc DECIMAL(5,2) NULL,
   classificacao VARCHAR(40) NULL,
   grau_obesidade VARCHAR(20) NULL,
+  ativo ENUM('sim','não') NOT NULL DEFAULT 'sim',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_weight_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_weight_user_date (user_id, data_registro)

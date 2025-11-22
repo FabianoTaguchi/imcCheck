@@ -12,6 +12,7 @@
         <th>IMC</th>
         <th>Classificação</th>
         <th>Dentro da meta?</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
@@ -29,11 +30,17 @@
               —
             {% endif %}
           </td>
+          <td>
+            <form method="post" action="{{ url_for('remover_registro') }}" style="display:inline;">
+              <input type="hidden" name="registro_id" value="{{ r.id if r.id is defined else '' }}" />
+              <button type="submit" class="button secondary">Remover</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       {% else %}
       <tr>
-        <td colspan="5">Sem registros no momento.</td>
+        <td colspan="6">Sem registros no momento.</td>
       </tr>
       {% endif %}
     </tbody>

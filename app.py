@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
 
 
 #Criação do app e configuração do banco de dados
@@ -58,6 +59,7 @@ class WeightRecord(db.Model):
     imc = db.Column(db.Numeric(5, 2))
     classificacao = db.Column(db.String(40))
     grau_obesidade = db.Column(db.String(20))
+    ativo = db.Column(db.String(3), nullable=False, default='sim')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 class Activity(db.Model):
@@ -142,7 +144,7 @@ def registros():
                     else:
                         classificacao = 'Obesidade'
                         grau = 'III'
-                registro = WeightRecord(user_id=user_id, data_registro=data_obj, peso=peso_val, imc=imc_val, classificacao=classificacao, grau_obesidade=grau)
+                registro = WeightRecord(user_id=user_id, data_registro=data_obj, peso=peso_val, imc=imc_val, classificacao=classificacao, grau_obesidade=grau, ativo='sim')
                 db.session.add(registro)
                 db.session.commit()
                 flash('Registro salvo.', 'success')
@@ -151,7 +153,7 @@ def registros():
                 flash('Erro ao salvar registro.', 'danger')
         return redirect(url_for('registros'))
     # GET: carrega registros para exibição na tabela abaixo do formulário
-    rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    rows = WeightRecord.query.filter_by(user_id=user_id, ativo='sim').order_by(WeightRecord.data_registro.desc()).all()
     # Monta a estrutura para o template com data, peso, imc, classificação e grau
     registros = [{'data': r.data_registro, 'peso': float(r.peso), 'imc': float(r.imc) if r.imc is not None else None, 'classificacao': r.classificacao, 'grau': r.grau_obesidade} for r in rows]
     return render_template('registros.html', show_menu=True, registros=registros)
@@ -166,7 +168,7 @@ def acompanhamento():
         flash('Faça login para acompanhar registros.', 'warning')
         return redirect(url_for('login'))
     # Busca registros de peso do usuário (ordem decrescente de data)
-    rows = WeightRecord.query.filter_by(user_id=user_id).order_by(WeightRecord.data_registro.desc()).all()
+    rows = WeightRecord.query.filter_by(user_id=user_id, ativo='sim').order_by(WeightRecord.data_registro.desc()).all()
     # Busca a meta ativa do usuário (user_id)
     meta = Goal.query.filter_by(user_id=user_id).first()
     registros = []
@@ -177,8 +179,24 @@ def acompanhamento():
         grau = r.grau_obesidade
         ok = (float(r.peso) <= float(meta.peso_meta)) if meta else None
         # Monta lista para o template com data, peso, imc, classificação, grau e indicador 'ok'
-        registros.append({'data': r.data_registro, 'peso': float(r.peso), 'imc': imc_val, 'classificacao': classificacao, 'grau': grau, 'ok': ok})
+        registros.append({'id': r.id, 'data': r.data_registro, 'peso': float(r.peso), 'imc': imc_val, 'classificacao': classificacao, 'grau': grau, 'ok': ok})
     return render_template('acompanhamento.html', show_menu=True, registros=registros)
+
+# Rota para remover um registro da página acompanhamento
+@app.route('/registros/remover', methods=['POST'])
+def remover_registro():
+    # Recupera o login do usuário em sessão
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Faça login para remover registros.', 'warning')
+        return redirect(url_for('login'))
+    # Recupera o id do registro que será excluído
+    rid = int((request.form.get('registro_id') or '').strip())
+    registro = WeightRecord.query.filter_by(id=rid, user_id=user_id).first()
+    registro.ativo = 'não'
+    db.session.commit()
+    flash('Registro removido.', 'success')
+    return redirect(url_for('acompanhamento'))
 
 # Rota que cadastra as atividades físicas recebidas pelo formulário
 @app.route('/atividades', methods=['GET', 'POST'])
